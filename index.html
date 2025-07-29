@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Breakup Map</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon.png">
+    <link rel="apple-touch-icon" href="favicon.png">
+    
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAQIUqMmH6-7gqk78JI4o5nqG5qhJ3Tib0&libraries=places"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Landing Page -->
+        <div id="landing-page" style="display: grid;">
+            <div class="left-column">
+                <h1 class="title">had your heart broken?</h1>
+                
+                
+                <div class="body-text">
+                    
+                    <!-- <p>Every relationship leaves marks on the landscape of our lives. Coffee shops become sacred, certain streets become painful, and parks hold echoes of conversations we can't forget.</p> -->
+                    
+                    <p>an anonymous collective artwork about love, loss, and the places that hold our stories</p>
+                </div>
+                
+                <button class="cta-button" onclick="goToSubmit()">show us where it hurt</button>
+            </div>
+            
+            <div class="right-column">
+                <!-- <div class="map-overlay">
+                    Click the pins to explore anonymous stories from others
+                </div> -->
+                <div id="map"></div>
+            </div>
+        </div>
+
+        <!-- Submit Page -->
+        <div id="submit-page" style="display: none;">
+            <!-- Step 1: Intro Screen -->
+            <div id="step-1" class="submit-container">
+                <div class="submit-content">
+                    <h1 class="submit-title">take a moment to breathe.</h1>
+                    <p class="submit-subtext">this is a space to reflect on a relationship that's ended - through mapping and story. your story will be anonymous and added to the collective map.</p>
+                    
+                   
+                    
+                    <div class="intro-buttons">
+                        <button class="cta-button" onclick="startForm()">Start</button>
+                        <!-- <button class="ghost-button" onclick="goToLanding()">← Back</button> -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shared Map Container (outside steps) -->
+            <div id="shared-map-container" class="shared-map-container" style="display: none;">
+                <div class="map-form-container">
+                    <div id="form-map"></div>
+                    <div id="dynamic-sidebar" class="map-form-sidebar">
+                        <!-- Sidebar content will be dynamically inserted here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Map Section -->
+            <div id="step-2" class="form-step" style="display: none;">
+                <!-- Map content will be shown in shared container -->
+                <div id="step-2-sidebar-content" style="display: none;">
+                    <div class="form-section">
+                        <h2>where did your heart break?</h2>
+                        <!-- <div class="progress-bar">
+                            <div class="progress" style="width: 20%"></div>
+                        </div> -->
+                        <div class="input-group">
+                            <!-- <label>Where did it end?</label> -->
+                            <input type="text" id="end-location" placeholder="Search for a place or click on the map">
+                        </div>
+                    </div>
+                    
+                    <div class="step-navigation">
+                        <!-- <button class="btn-back" onclick="goToStep(1)">← Back</button> -->
+                        <button class="btn-next" onclick="goToStep(3)">Continue →</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Memory Locations -->
+            <div id="step-3" class="form-step" style="display: none;">
+                <!-- Map content will be shown in shared container -->
+                <div id="step-3-sidebar-content" style="display: none;">
+                    <div class="form-section">
+                        <h2>which places still hold memories?</h2>
+                        <!-- <div class="progress-bar">
+                            <div class="progress" style="width: 40%"></div>
+                        </div> -->
+                        <div class="step-navigation-mobile">
+                            <button class="btn-next" onclick="goToStep(5)">Continue →</button>
+                        </div>
+                        <div class="input-group">
+                            <label>click on the map to add places that still trigger memories</label>
+                            <!-- <button class="add-memory-btn" onclick="addMemoryLocation()" style="margin-top: 10px;">+ Add Another Memory Location</button> -->
+                            <div id="memory-locations" style="margin-top: 15px;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="step-navigation">
+                        <!-- <button class="btn-back" onclick="goToStep(2)">← Back</button> -->
+                        <button class="btn-next btn-next-desktop" onclick="goToStep(5)">Continue →</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: Color Question -->
+            <!-- COMMENTED OUT FOR NOW
+            <div id="step-4" class="form-step" style="display: none;">
+                <div class="step-header">
+                    <!-- <h2>What color represents this relationship?</h2> 
+                    <div class="progress-bar">
+                        <div class="progress" style="width: 45%"></div>
+                    </div>
+                </div>
+                <div class="visual-form-container">
+                    <div class="visual-questions">
+                        <div class="question-group">
+                            <h3>What color represents this relationship?</h3>
+                            <p>Trust your instincts - there's no wrong answer</p>
+                            <div class="color-picker-container" id="color-picker">
+                            </div>
+                            <div class="selected-color-display" id="selected-color" style="background-color: #667eea;"></div>
+                            <input type="color" id="relationship-color" value="#667eea">
+                        </div>
+                    </div>
+                    <div class="step-navigation">
+                        <button class="btn-back" onclick="goToStep(3)">← Back</button>
+                        <button class="btn-next" onclick="goToStep(5)">Continue →</button>
+                    </div>
+                    
+                    
+                </div>
+            </div>
+            -->
+
+            <!-- Step 5: Duration -->
+            <div id="step-5" class="form-step" style="display: none;">
+                <div class="visual-form-container">
+                    <h2>How long did it last?</h2>
+                    <!-- <div class="progress-bar">
+                        <div class="progress" style="width: 60%"></div>
+                    </div> -->
+                    <div class="visual-questions">
+                        <div class="question-group">
+                            <input type="range" id="duration-slider" min="1" max="100" value="50">
+                            <div class="slider-labels">
+                                <span>a moment</span>
+                                <span id="duration-display">1 year</span>
+                                <span>a lifetime</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="step-navigation">
+                        <!-- <button class="btn-back" onclick="goToStep(3)">← Back</button> -->
+                        <button class="btn-next" onclick="goToStep(7)">Continue →</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 6: Season -->
+            <!-- COMMENTED OUT FOR NOW
+            <div id="step-6" class="form-step" style="display: none;">
+                <div class="step-header">
+                    <h2>What season did it end?</h2>
+                    <div class="progress-bar">
+                        <div class="progress" style="width: 65%"></div>
+                    </div>
+                </div>
+                <div class="visual-form-container">
+                    <div class="visual-questions">
+                        <div class="question-group">
+                            <div class="season-selector">
+                                <div class="season" data-season="spring">🌸 Spring</div>
+                                <div class="season" data-season="summer">☀️ Summer</div>
+                                <div class="season" data-season="fall">🍂 Fall</div>
+                                <div class="season" data-season="winter">❄️ Winter</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="step-navigation">
+                        <button class="btn-back" onclick="goToStep(5)">← Back</button>
+                        <button class="btn-next" onclick="goToStep(7)">Continue →</button>
+                    </div>
+                </div>
+            </div>
+            -->
+
+            <!-- Step 7: Story -->
+            <div id="step-7" class="form-step" style="display: none;">
+                <div class="story-container">
+                    <h2>what happened?</h2>
+                    <!-- <div class="progress-bar">
+                        <div class="progress" style="width: 100%"></div>
+                    </div> -->
+                    <div class="story-form">
+                        <label>say as much or as little as you want</label>
+                        <textarea id="story-text" placeholder="start writing..."></textarea>
+                    </div>
+                    
+                    <div class="step-navigation">
+                        <!-- <button class="btn-back" onclick="goToStep(5)">← Back</button> -->
+                        <button class="btn-next" onclick="submitForm()">Submit →</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Thank You Page -->
+            <div id="thank-you-page" class="form-step" style="display: none;">
+                <div class="story-container">
+                    <div style="text-align: center; padding: 40px 20px;">
+                        <h2 style="color: #8b7355; margin-bottom: 30px;">got it, thanks for sharing</h2>
+                        
+                        <div style="max-width: 500px; margin: 0 auto; line-height: 1.6; color: #666; margin-bottom: 40px;">
+                            <p>your story is safe with us. it won't show up on the map right away, but knowing someone else has walked through heartbreak in these same places might help others feel a little less alone.</p>
+                            
+                            
+                            <p style="font-style: italic; margin-top: 30px;">come back sometime and see what other people have shared.</p>
+                        </div>
+                        
+                        <button class="cta-button" onclick="goToLanding()" style="margin-bottom: 20px;">
+                            back to the map
+                        </button>
+                        
+                        <div style="font-size: 14px; color: #999;">
+                            <p>questions? just wondering what this is about? <a href="mailto:nyc.lovearchive@gmail.com" style="color: #dc3545; text-decoration: none;">we'd love to hear from you</a>.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 8: Optional Deep Dive -->
+            <!-- <div id="step-8" class="form-step" style="display: none;">
+                <div class="timeline-container">
+                    <h2>draw your emotional journey</h2>
+                    <div class="progress-bar">
+                        <div class="progress" style="width: 100%"></div>
+                    </div>
+                    
+                    <div class="timeline-canvas-wrapper">
+                        <div class="canvas-labels-left">
+                            <span class="label-positive">positive</span>
+                            <span class="label-negative">negative</span>
+                        </div>
+                        <div class="canvas-container">
+                            <canvas id="timeline-canvas" width="600" height="300"></canvas>
+                        </div>
+                    </div>
+                    
+                  
+                    
+                    <div class="step-navigation-simple">
+                        <button class="btn-back-simple" onclick="goToStep(7)">back</button>
+                        <button class="btn-submit-simple" onclick="submitForm()">submit</button>
+                    </div>
+                </div>
+            </div> -->
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+</html>
