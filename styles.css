@@ -44,6 +44,108 @@ input, textarea, .popup-story, .popup-location {
     overflow-y: auto; /* Allow scrolling within the container */
 }
 
+/* Loading state - hide content until maps are ready */
+body.loading .container {
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* Smooth content reveal after loading */
+.container {
+    opacity: 0;
+    transition: opacity 1.2s ease-out;
+}
+
+body.loaded .container {
+    opacity: 1;
+}
+
+/* Staggered fade-in animations */
+body.loaded .left-column {
+    animation: fadeIn 0.8s ease-out 0.2s both;
+}
+
+body.loaded .right-column {
+    animation: fadeIn 0.8s ease-out 0.4s both;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Fix Google Places autocomplete dropdown z-index */
+.pac-container {
+    z-index: 99999 !important;
+    border-radius: 6px !important;
+    border: 2px solid #dc3545 !important;
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3) !important;
+    position: fixed !important;
+}
+
+/* Also style custom suggestions list */
+.suggestions-list {
+    z-index: 99999 !important;
+    position: absolute !important;
+}
+
+/* Fix z-index stacking context for autocomplete to appear above everything */
+.input-group {
+    position: relative;
+    z-index: 10000;
+}
+
+.map-form-sidebar .input-group {
+    position: relative;
+    z-index: 10000;
+}
+
+.form-section {
+    position: relative;
+    z-index: 9999;
+}
+
+body.loading .loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #f8f6f0 0%, #f0ebe3 50%, #e8ddd4 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(220, 53, 69, 0.3);
+    border-top: 3px solid #dc3545;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+.loading-text {
+    font-family: 'PT Mono', monospace;
+    color: #8b7355;
+    font-size: 14px;
+    font-style: italic;
+    letter-spacing: 0.5px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
 #landing-page {
     display: grid;
     grid-template-columns: 2fr 3fr;
@@ -267,8 +369,8 @@ input, textarea, .popup-story, .popup-location {
     align-items: center;
     margin-top: 30px;
     opacity: 0;
-    transform: translateY(-40px);
-    transition: all 1.2s ease-out 0.6s;
+    transform: translateY(-15px);
+    transition: all 1s ease-out 0.4s;
 }
 
 .intro-buttons.animate-in {
@@ -304,8 +406,8 @@ input, textarea, .popup-story, .popup-location {
     margin-bottom: 20px;
     letter-spacing: -1px;
     opacity: 0;
-    transform: translateY(-40px);
-    transition: all 1.2s ease-out;
+    transform: translateY(-30px);
+    transition: all 1s ease-out;
 }
 
 .submit-title.animate-in {
@@ -319,8 +421,8 @@ input, textarea, .popup-story, .popup-location {
     margin-bottom: 40px;
     line-height: 1.4;
     opacity: 0;
-    transform: translateY(-40px);
-    transition: all 1.2s ease-out 0.4s;
+    transform: translateY(-20px);
+    transition: all 1s ease-out 0.2s;
 }
 
 .submit-subtext.animate-in {
@@ -331,14 +433,11 @@ input, textarea, .popup-story, .popup-location {
 .submit-info {
     text-align: left;
     margin-bottom: 40px;
-    opacity: 0;
-    transform: translateY(-40px);
-    transition: all 1.2s ease-out 0.8s;
+    /* Remove individual animation - now handled by page-wide fade */
 }
 
 .submit-info.animate-in {
-    opacity: 1;
-    transform: translateY(0);
+    /* Animation disabled in favor of page-wide fade */
 }
 
 .info-item {

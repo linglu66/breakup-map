@@ -57,16 +57,20 @@ async function saveSubmissionData(stepCompleted, additionalData = {}) {
         console.log('Saving submission data:', submissionData);
 
         // First try to see if record exists
-        const { data: existingData } = await supabase
+        const { data: existingData, error: selectError } = await supabase
             .from('submissions')
             .select('*')
             .eq('session_id', sessionId)
-            .single();
+            .maybeSingle();
 
         console.log('Existing record:', existingData);
 
+        if (selectError) {
+            console.log('Select error (table may not exist):', selectError);
+        }
+
         let result;
-        if (existingData) {
+        if (existingData && !selectError) {
             // Update existing record
             result = await supabase
                 .from('submissions')
@@ -95,10 +99,23 @@ async function saveSubmissionData(stepCompleted, additionalData = {}) {
 // Step-specific saving functions
 async function saveStep2Data() {
     if (formData.endLocation) {
+        // Extract the best available name from Google Maps data
+        let locationName = 'Unknown location';
+
+        if (formData.endLocationData) {
+            // Try to get business/store name first, then fallback to address
+            locationName = formData.endLocationData.name ||
+                          formData.endLocationData.place_name ||
+                          formData.endLocationData.text ||
+                          formData.endLocationData.formatted_address ||
+                          'Unknown location';
+        }
+
         await saveSubmissionData(2, {
             breakup_location: {
                 coordinates: formData.endLocation,
-                place_name: formData.endLocationData?.place_name || formData.endLocationData?.text || 'Unknown location'
+                place_name: locationName,
+                full_data: formData.endLocationData // Store full Google Maps data for reference
             }
         });
     }
@@ -158,9 +175,22 @@ async function saveCompleteSubmission() {
 
     // Add breakup location if available
     if (formData.endLocation) {
+        // Extract the best available name from Google Maps data
+        let locationName = 'Unknown location';
+
+        if (formData.endLocationData) {
+            // Try to get business/store name first, then fallback to address
+            locationName = formData.endLocationData.name ||
+                          formData.endLocationData.place_name ||
+                          formData.endLocationData.text ||
+                          formData.endLocationData.formatted_address ||
+                          'Unknown location';
+        }
+
         completeData.breakup_location = {
             coordinates: formData.endLocation,
-            place_name: formData.endLocationData?.place_name || formData.endLocationData?.text || 'Unknown location'
+            place_name: locationName,
+            full_data: formData.endLocationData // Store full Google Maps data for reference
         };
     }
 
@@ -171,7 +201,218 @@ async function saveCompleteSubmission() {
 // Initialize session when page loads
 document.addEventListener('DOMContentLoaded', function() {
     initializeSession();
+    checkForSessionRecovery();
+    setupUnloadWarning();
+
+    // Note: Content will be shown after map loads (see map.on('load') handler)
 });
+
+// Check if user needs session recovery
+function checkForSessionRecovery() {
+    const sessionId = localStorage.getItem('breakup-map-session');
+    const savedProgress = localStorage.getItem('breakup-map-progress');
+
+    if (sessionId && savedProgress) {
+        try {
+            const progress = JSON.parse(savedProgress);
+
+            // Check if user is on submit page (both paths and hashes)
+            const isOnSubmitPage = window.location.pathname === '/submit' ||
+                                   window.location.hash === '#submit' ||
+                                   window.location.hash.startsWith('#step-');
+
+            // If user has progress and is on a submit-related page, offer recovery
+            if (progress.stepCompleted > 0 && isOnSubmitPage) {
+                const urlFragment = window.location.hash;
+                const shouldRecover = !urlFragment ||
+                                    urlFragment === '#' ||
+                                    urlFragment === '#submit' ||
+                                    (urlFragment.startsWith('#step-') && parseInt(urlFragment.replace('#step-', '')) <= progress.stepCompleted + 1);
+
+                if (shouldRecover) {
+                    showRecoveryPrompt(progress);
+                }
+            }
+        } catch (e) {
+            console.log('Error parsing saved progress:', e);
+            // Clean up corrupted data
+            localStorage.removeItem('breakup-map-progress');
+        }
+    }
+}
+
+// Show session recovery prompt
+function showRecoveryPrompt(progress) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.7);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
+    `;
+
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        background: white;
+        border: 3px dotted #dc3545;
+        border-radius: 12px;
+        padding: 30px;
+        max-width: 450px;
+        text-align: center;
+        font-family: 'PT Mono', monospace;
+        box-shadow: 4px 4px 0px rgba(220, 53, 69, 0.2);
+    `;
+
+    const stepText = progress.stepCompleted === 1 ? 'step 1' :
+                    progress.stepCompleted === 2 ? 'choosing your location' :
+                    progress.stepCompleted === 3 ? 'adding memories' :
+                    progress.stepCompleted === 5 ? 'sharing duration' :
+                    progress.stepCompleted === 7 ? 'almost finished' :
+                    `step ${progress.stepCompleted}`;
+
+    modal.innerHTML = `
+        <h3 style="color: #dc3545; margin-bottom: 15px; font-size: 1.3rem;">welcome back</h3>
+        <p style="color: #666; margin-bottom: 20px; line-height: 1.5;">
+            we found your story in progress. you were at <strong>${stepText}</strong>.
+            would you like to continue where you left off?
+        </p>
+        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+            <button id="continue-story" style="
+                background: #dc3545;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 10px 20px;
+                font-family: 'PT Mono', monospace;
+                font-size: 14px;
+                cursor: pointer;
+                transition: background 0.2s ease;
+            ">continue story</button>
+            <button id="start-fresh" style="
+                background: white;
+                color: #6c757d;
+                border: 2px solid #6c757d;
+                border-radius: 6px;
+                padding: 8px 18px;
+                font-family: 'PT Mono', monospace;
+                font-size: 14px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            ">start fresh</button>
+        </div>
+    `;
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    // Handle continue
+    modal.querySelector('#continue-story').addEventListener('click', () => {
+        const nextStep = Math.min(progress.stepCompleted + 1, 7);
+        restoreSessionData(progress);
+        overlay.remove();
+        goToSubmit();
+        setTimeout(() => goToStep(nextStep), 300);
+    });
+
+    // Handle start fresh
+    modal.querySelector('#start-fresh').addEventListener('click', () => {
+        localStorage.removeItem('breakup-map-progress');
+        localStorage.removeItem('breakup-map-session');
+        overlay.remove();
+        // Reinitialize with new session
+        initializeSession();
+    });
+}
+
+// Restore session data from saved progress
+function restoreSessionData(progress) {
+    if (progress.formData) {
+        Object.assign(formData, progress.formData);
+    }
+
+    if (progress.memoryMarkers) {
+        memoryMarkers = progress.memoryMarkers;
+    }
+}
+
+// Save progress to localStorage
+function saveProgress(stepCompleted) {
+    const progress = {
+        stepCompleted,
+        timestamp: Date.now(),
+        formData: { ...formData },
+        memoryMarkers: memoryMarkers.map(m => ({
+            coords: m.coords,
+            id: m.id,
+            description: m.description,
+            context: m.context,
+            number: m.number
+        }))
+    };
+
+    localStorage.setItem('breakup-map-progress', JSON.stringify(progress));
+}
+
+// Setup warning for unsaved progress
+function setupUnloadWarning() {
+    let hasUnsavedChanges = false;
+    let isOnStep1 = true; // Start on step 1 which doesn't have user data
+
+    // Track when user makes changes
+    window.addEventListener('beforeunload', (e) => {
+        const sessionId = localStorage.getItem('breakup-map-session');
+        const isInProgress = document.getElementById('submit-page')?.style.display !== 'none';
+        const currentStepElement = document.querySelector('.form-step[style*="block"], .form-step.active');
+
+        // Don't warn on step 1 or thank you page
+        const isOnProtectedStep = currentStepElement && (
+            currentStepElement.id === 'step-1' ||
+            currentStepElement.id === 'thank-you-page'
+        );
+
+        if (sessionId && isInProgress && hasUnsavedChanges && !isOnProtectedStep) {
+            const message = "You have unsaved progress. Are you sure you want to leave?";
+            e.returnValue = message;
+            return message;
+        }
+    });
+
+    // Set flag when user interacts with form
+    window.setUnsavedChanges = (value) => {
+        hasUnsavedChanges = value;
+    };
+
+    // Track step changes to automatically set unsaved changes flag
+    const originalGoToStep = window.goToStep;
+    window.goToStep = function(stepNumber) {
+        if (stepNumber > 1) {
+            hasUnsavedChanges = true;
+        }
+        return originalGoToStep.call(this, stepNumber);
+    };
+
+    // Track form interactions
+    document.addEventListener('input', (e) => {
+        if (e.target.matches('#end-location, #story-text, #duration-slider, [id^="memory-"]')) {
+            hasUnsavedChanges = true;
+        }
+    });
+
+    // Track map interactions (memory markers)
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('memory-marker') || e.target.closest('.memory-marker')) {
+            hasUnsavedChanges = true;
+        }
+    });
+}
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 
@@ -481,6 +722,17 @@ map.on('load', () => {
             }
         }, 1000);
     }, 500);
+
+    // Show content after map is fully loaded and positioned
+    setTimeout(() => {
+        document.body.classList.remove('loading');
+        document.body.classList.add('loaded');
+
+        // Remove loading overlay after animation starts
+        setTimeout(() => {
+            document.querySelector('.loading-overlay')?.remove();
+        }, 200);
+    }, 800);
 });
 
 function startCycling() {
@@ -556,6 +808,7 @@ window.startForm = startForm;
 window.submitForm = submitForm;
 window.addMemoryLocation = addMemoryLocation;
 window.removeMemoryLocation = removeMemoryLocation;
+window.toggleMemoryManagement = toggleMemoryManagement;
 
 function triggerIntroAnimations() {
     const submitTitle = document.querySelector('.submit-title');
@@ -567,18 +820,18 @@ function triggerIntroAnimations() {
         if (el) el.classList.remove('animate-in');
     });
     
-    // Trigger animations with simpler timing since we have fewer elements
+    // Delay animations until after page-wide fade completes (after 1200ms)
     setTimeout(() => {
         if (submitTitle) submitTitle.classList.add('animate-in');
-    }, 100);
-    
+    }, 1300);
+
     setTimeout(() => {
         if (submitSubtext) submitSubtext.classList.add('animate-in');
-    }, 300);
-    
+    }, 1500);
+
     setTimeout(() => {
         if (introButtons) introButtons.classList.add('animate-in');
-    }, 600);
+    }, 1700);
 }
 
 function triggerSidebarContentAnimations() {
@@ -669,11 +922,18 @@ function goToLanding() {
 function handleRouting() {
     const path = window.location.pathname;
     const hash = window.location.hash;
-    
+
     if (isLocal) {
         // Local development - use hash routing
-        if (hash === '#submit') {
+        if (hash === '#submit' || hash.startsWith('#step-')) {
             showSubmitPage();
+            // Handle direct step navigation
+            if (hash.startsWith('#step-')) {
+                const stepNum = parseInt(hash.replace('#step-', ''));
+                if (!isNaN(stepNum) && stepNum >= 1 && stepNum <= 7) {
+                    setTimeout(() => goToStep(stepNum), 100);
+                }
+            }
         } else {
             showLandingPage();
         }
@@ -681,6 +941,13 @@ function handleRouting() {
         // Hosted - use path routing
         if (path === '/submit') {
             showSubmitPage();
+            // Handle direct step navigation via hash
+            if (hash.startsWith('#step-')) {
+                const stepNum = parseInt(hash.replace('#step-', ''));
+                if (!isNaN(stepNum) && stepNum >= 1 && stepNum <= 7) {
+                    setTimeout(() => goToStep(stepNum), 100);
+                }
+            }
         } else {
             showLandingPage();
         }
@@ -858,6 +1125,29 @@ function showStep(stepNumber) {
             }
         }, 300);
     }
+
+    // Update URL to reflect current step
+    updateUrlForStep(stepNumber);
+}
+
+function updateUrlForStep(stepNumber) {
+    const path = window.location.pathname;
+
+    if (isLocal) {
+        // Local development - use hash routing
+        if (stepNumber === 1) {
+            window.location.hash = '#submit';
+        } else {
+            window.location.hash = `#step-${stepNumber}`;
+        }
+    } else {
+        // Hosted - use path routing with hash
+        if (stepNumber === 1) {
+            history.replaceState({page: 'submit', step: 1}, 'The Breakup Map', '/submit');
+        } else {
+            history.replaceState({page: 'submit', step: stepNumber}, 'The Breakup Map', `/submit#step-${stepNumber}`);
+        }
+    }
 }
 
 function updateDynamicSidebar(stepNumber) {
@@ -1006,15 +1296,41 @@ async function reverseGeocode(coords, inputId) {
         const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${coords[0]},${coords[1]}.json?access_token=${mapboxgl.accessToken}&limit=1`);
         const data = await response.json();
         if (data.features && data.features.length > 0) {
-            const placeName = data.features[0].place_name;
+            const feature = data.features[0];
+
+            // Extract just the street name from the place data
+            let streetName = '';
+
+            // Try to find address/street from the context
+            if (feature.context) {
+                const addressContext = feature.context.find(ctx => ctx.id.startsWith('address'));
+                if (addressContext) {
+                    streetName = addressContext.text;
+                }
+            }
+
+            // If no address context, try to parse from place_name
+            if (!streetName && feature.place_name) {
+                const parts = feature.place_name.split(',');
+                if (parts.length > 0) {
+                    // Take the first part (usually the street address)
+                    streetName = parts[0].trim();
+                }
+            }
+
+            // If still no street name, try the text property
+            if (!streetName) {
+                streetName = feature.text || feature.place_name;
+            }
+
             const input = document.getElementById(inputId);
             if (input) {
-                input.value = placeName;
-                
+                input.value = streetName;
+
                 // If this is a memory location input, update the stored data
                 if (inputId.startsWith('memory-')) {
                     const memoryId = inputId.replace('memory-', '');
-                    updateMemoryData(memoryId, 'description', placeName);
+                    updateMemoryData(memoryId, 'description', streetName);
                 }
             }
         } else {
@@ -1099,9 +1415,9 @@ function setupAutocomplete(inputId, map, onSelect) {
             new google.maps.LatLng(40.4774, -74.2591), // SW
             new google.maps.LatLng(40.9176, -73.7004)  // NE
         );
-        
+
         const service = new google.maps.places.AutocompleteService();
-        
+
         service.getPlacePredictions({
             input: query,
             bounds: nycBounds,
@@ -1110,10 +1426,11 @@ function setupAutocomplete(inputId, map, onSelect) {
             componentRestrictions: { country: 'us' }
         }, (predictions, status) => {
             hideSuggestions();
-            
+
             if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
                 // Create suggestions list
                 suggestionsList = document.createElement('div');
+                suggestionsList.className = 'suggestions-list';
                 suggestionsList.style.cssText = `
                     position: absolute;
                     top: 100%;
@@ -1124,24 +1441,22 @@ function setupAutocomplete(inputId, map, onSelect) {
                     border-top: none;
                     border-radius: 0 0 6px 6px;
                     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                    z-index: 1000;
+                    z-index: 99999;
                     max-height: 350px;
                     overflow-y: auto;
                 `;
-                
+
                 // Limit to top 10 results
                 predictions.slice(0, 10).forEach(prediction => {
                     const suggestion = document.createElement('div');
                     suggestion.style.cssText = `
                         padding: 12px;
                         cursor: pointer;
-            
-            
                         border-bottom: 1px solid #eee;
                         font-size: 14px;
                         line-height: 1.4;
                     `;
-                    
+
                     // Parse the prediction for better display
                     const mainText = prediction.structured_formatting?.main_text || '';
                     const secondaryText = prediction.structured_formatting?.secondary_text || '';
@@ -1460,11 +1775,14 @@ function handleMapClick(e) {
         const newMemoryDiv = memoryDivs[memoryDivs.length - 1];
         const memoryId = newMemoryDiv.getAttribute('data-memory-id');
         
-        const marker = new mapboxgl.Marker({color: '#3498db'})
+        // Create custom marker element with numbered badge
+        const markerEl = createMemoryMarkerElement(memoryMarkers.length + 1);
+        const marker = new mapboxgl.Marker(markerEl)
             .setLngLat(coords)
             .addTo(sharedFormMap);
-        
-        memoryMarkers.push({marker, coords, id: memoryId, description: '', context: ''});
+
+        const markerData = {marker, coords, id: memoryId, description: '', context: '', number: memoryMarkers.length + 1, element: markerEl};
+        memoryMarkers.push(markerData);
         
         // Reverse geocode to get location name and populate the description
         reverseGeocode(coords, `memory-${memoryId}`);
@@ -1472,6 +1790,246 @@ function handleMapClick(e) {
 }
 
 let memoryMarkers = [];
+
+// Create numbered marker element for memory locations
+function createMemoryMarkerElement(number) {
+    const el = document.createElement('div');
+    el.className = 'memory-marker';
+    el.style.cssText = `
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #3498db;
+        border: 3px solid #fcf8f0;
+        box-shadow: 0 4px 12px rgba(52,152,219,0.4);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 14px;
+        color: white;
+        font-family: 'PT Mono', monospace;
+        position: absolute;
+        transform: translate(-50%, -50%);
+        transform-origin: center center;
+        pointer-events: auto;
+    `;
+
+    el.textContent = number;
+
+    // Add click to remove functionality
+    el.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Center map on clicked marker
+        const marker = memoryMarkers.find(m => m.number === number);
+        if (marker && sharedFormMap) {
+            sharedFormMap.flyTo({
+                center: marker.coords,
+                zoom: Math.max(sharedFormMap.getZoom(), 15),
+                duration: 1000
+            });
+
+            // Show popup after map animation completes
+            setTimeout(() => {
+                showRemoveMarkerDialog(number, el);
+            }, 1000);
+        } else {
+            // If no map movement needed, show popup immediately
+            showRemoveMarkerDialog(number, el);
+        }
+    });
+
+    // Prevent map interactions when clicking marker
+    el.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+    });
+
+    el.addEventListener('touchstart', (e) => {
+        e.stopPropagation();
+    });
+
+    // Simplified hover effects that don't interfere with positioning
+    el.addEventListener('mouseenter', () => {
+        el.style.boxShadow = '0 6px 16px rgba(52,152,219,0.6)';
+        el.style.filter = 'brightness(1.1)';
+    });
+
+    el.addEventListener('mouseleave', () => {
+        el.style.boxShadow = '0 4px 12px rgba(52,152,219,0.4)';
+        el.style.filter = 'brightness(1)';
+    });
+
+    return el;
+}
+
+// Show removal dialog for markers
+function showRemoveMarkerDialog(markerNumber, markerElement) {
+    const markerData = memoryMarkers.find(m => m.number === markerNumber);
+    if (!markerData) return;
+
+    const locationName = markerData.description || `Location ${markerNumber}`;
+
+    // Remove any existing removal popup
+    const existingPopup = document.querySelector('.marker-removal-popup');
+    if (existingPopup) {
+        existingPopup.remove();
+    }
+
+    // Create custom popup above the marker
+    const popup = document.createElement('div');
+    popup.className = 'marker-removal-popup';
+    popup.style.cssText = `
+        position: absolute;
+        background: #fcf8f0;
+        border: 2px solid #dc3545;
+        border-radius: 8px;
+        padding: 12px 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 10000;
+        font-family: 'PT Mono', monospace;
+        font-size: 14px;
+        max-width: 200px;
+        text-align: center;
+        transform: translate(-50%, -100%);
+        margin-top: -10px;
+        pointer-events: auto;
+    `;
+
+    popup.innerHTML = `
+        <div style="color: #333; margin-bottom: 8px; font-weight: 500;">Remove this location?</div>
+        <div style="color: #666; font-size: 12px; margin-bottom: 12px;">${locationName}</div>
+        <div style="display: flex; gap: 8px; justify-content: center;">
+            <button class="popup-remove-btn" style="
+                background: #dc3545;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 6px 12px;
+                font-size: 12px;
+                cursor: pointer;
+                font-family: 'PT Mono', monospace;
+            ">Remove</button>
+            <button class="popup-cancel-btn" style="
+                background: #6c757d;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 6px 12px;
+                font-size: 12px;
+                cursor: pointer;
+                font-family: 'PT Mono', monospace;
+            ">Cancel</button>
+        </div>
+    `;
+
+    // Position popup relative to marker
+    const markerRect = markerElement.getBoundingClientRect();
+    const mapContainer = document.getElementById('form-map');
+    const mapRect = mapContainer.getBoundingClientRect();
+
+    popup.style.left = (markerRect.left - mapRect.left + markerRect.width / 2) + 'px';
+    popup.style.top = (markerRect.top - mapRect.top) + 'px';
+
+    // Add event listeners
+    popup.querySelector('.popup-remove-btn').addEventListener('click', () => {
+        removeMemoryMarkerByNumber(markerNumber);
+        popup.remove();
+    });
+
+    popup.querySelector('.popup-cancel-btn').addEventListener('click', () => {
+        popup.remove();
+    });
+
+    // Close popup if clicked outside
+    setTimeout(() => {
+        document.addEventListener('click', function closePopup(e) {
+            if (!popup.contains(e.target) && !markerElement.contains(e.target)) {
+                popup.remove();
+                document.removeEventListener('click', closePopup);
+            }
+        });
+    }, 100);
+
+    // Add to map container
+    mapContainer.style.position = 'relative';
+    mapContainer.appendChild(popup);
+}
+
+// Remove memory marker by number and update all numbers
+function removeMemoryMarkerByNumber(markerNumber) {
+    const markerIndex = memoryMarkers.findIndex(m => m.number === markerNumber);
+    if (markerIndex === -1) return;
+
+    // Remove the marker from map
+    memoryMarkers[markerIndex].marker.remove();
+
+    // Remove from array
+    memoryMarkers.splice(markerIndex, 1);
+
+    // Update numbers for remaining markers
+    memoryMarkers.forEach((markerData, index) => {
+        markerData.number = index + 1;
+        markerData.element.textContent = index + 1;
+    });
+
+    // Remove corresponding sidebar entry
+    const sidebarDiv = document.querySelector(`[data-memory-id="${memoryMarkers[markerIndex]?.id}"]`);
+    if (sidebarDiv) {
+        sidebarDiv.remove();
+    }
+
+    // Update memory count indicator
+    updateMemoryCountIndicator();
+}
+
+// Update memory count indicator
+function updateMemoryCountIndicator() {
+    const indicator = document.getElementById('memory-count-indicator');
+    const count = memoryMarkers.length;
+
+    if (indicator) {
+        if (count > 0) {
+            indicator.style.display = 'flex';
+            const countText = indicator.querySelector('.memory-count-text');
+            const manageBtn = indicator.querySelector('.memory-manage-btn');
+
+            if (countText) {
+                countText.textContent = `${count} ${count === 1 ? 'memory' : 'memories'} added`;
+            }
+
+            if (manageBtn) {
+                manageBtn.style.display = count > 0 ? 'block' : 'none';
+            }
+        } else {
+            indicator.style.display = 'none';
+        }
+    }
+}
+
+// Toggle memory management sidebar visibility
+function toggleMemoryManagement() {
+    const memoryLocationsContainer = document.getElementById('memory-locations');
+    const isVisible = memoryLocationsContainer.style.display !== 'none';
+
+    if (isVisible) {
+        memoryLocationsContainer.style.display = 'none';
+    } else {
+        memoryLocationsContainer.style.display = 'block';
+        // Scroll to the container on mobile
+        if (window.innerWidth <= 768) {
+            memoryLocationsContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
+    // Update manage button text
+    const manageBtn = document.querySelector('.memory-manage-btn');
+    if (manageBtn) {
+        manageBtn.textContent = isVisible ? 'manage' : 'hide';
+    }
+}
 
 // Legacy function names for compatibility
 function initFormMap() {
@@ -1494,31 +2052,49 @@ function addMemoryLocation(coords = null) {
         border-radius: 8px;
         border: 1px solid rgba(139, 115, 85, 0.1);
     `;
-    
+
     const uniqueId = Date.now();
     const memoryId = 'memory-' + uniqueId;
-    
+    const markerNumber = memoryMarkers.length + 1;
+
     div.innerHTML = `
         <div style="position: relative;" class="location-confirmed">
-            <input type="text" id="${memoryId}" placeholder="Describe this memory location" 
+            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                <div style="
+                    width: 24px;
+                    height: 24px;
+                    border-radius: 50%;
+                    background: #3498db;
+                    color: white;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: bold;
+                    font-size: 12px;
+                    margin-right: 8px;
+                    font-family: 'PT Mono', monospace;
+                ">${markerNumber}</div>
+                <span style="color: #666; font-size: 12px;">Memory Location ${markerNumber}</span>
+            </div>
+            <input type="text" id="${memoryId}" placeholder="Describe this memory location"
                    style="width: 100%; padding: 8px 30px 8px 8px; border: 1px solid #d4c4b0; border-radius: 4px; font-size: 14px; background: #f9f7f4;">
-            <button type="button" class="remove-memory-btn" onclick="removeMemoryLocation(this)" 
-                    style="position: absolute; top: 50%; right: 8px; transform: translateY(-50%); 
-                           background: none; color: #999; border: none; padding: 0; 
-                           font-size: 16px; cursor: pointer; width: 20px; height: 20px; 
+            <button type="button" class="remove-memory-btn" onclick="removeMemoryLocation(this)"
+                    style="position: absolute; top: 50%; right: 8px; transform: translateY(-50%);
+                           background: none; color: #999; border: none; padding: 0;
+                           font-size: 16px; cursor: pointer; width: 20px; height: 20px;
                            display: flex; align-items: center; justify-content: center;
                            border-radius: 50%; transition: all 0.2s ease;"
-                    onmouseover="this.style.backgroundColor='#f0f0f0'; this.style.color='#dc3545';" 
+                    onmouseover="this.style.backgroundColor='#f0f0f0'; this.style.color='#dc3545';"
                     onmouseout="this.style.backgroundColor='transparent'; this.style.color='#999';"
                     title="Remove this memory location">
                 ✕
             </button>
         </div>
     `;
-    
+
     div.setAttribute('data-memory-id', uniqueId);
     container.appendChild(div);
-    
+
     // Add event listener to save description changes
     const descriptionInput = div.querySelector(`#${memoryId}`);
     if (descriptionInput) {
@@ -1526,11 +2102,14 @@ function addMemoryLocation(coords = null) {
             updateMemoryData(uniqueId, 'description', this.value);
         });
     }
-    
+
     // If coordinates provided, reverse geocode to fill in the location
     if (coords) {
         reverseGeocode(coords, memoryId);
     }
+
+    // Update memory count indicator
+    updateMemoryCountIndicator();
 }
 
 

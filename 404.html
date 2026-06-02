@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lost? - The Breakup Map</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon.png">
+    <link rel="apple-touch-icon" href="favicon.png">
+
+    <link rel="stylesheet" href="styles.css">
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'PT Mono', monospace;
+            background: linear-gradient(135deg, #f8f6f0 0%, #f0ebe3 50%, #e8ddd4 100%);
+            min-height: 100vh;
+        }
+
+        .error-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .error-content {
+            max-width: 600px;
+            text-align: center;
+            background:
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 12px,
+                    rgba(220, 53, 69, 0.15) 12px,
+                    rgba(220, 53, 69, 0.15) 13px
+                ),
+                rgba(252, 248, 240, 0.98);
+            border: 3px dotted #dc3545;
+            border-radius: 0;
+            padding: 50px 40px;
+            box-shadow: 5px 5px 0px rgba(220, 53, 69, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .error-title {
+            font-size: 5rem;
+            font-weight: 400;
+            color: #dc3545;
+            margin-bottom: 20px;
+            font-family: 'PT Mono', monospace;
+            line-height: 1;
+            text-transform: lowercase;
+        }
+
+        .error-subtitle {
+            font-size: 1.6rem;
+            color: #8b7355;
+            margin-bottom: 30px;
+            font-weight: 400;
+            text-transform: lowercase;
+        }
+
+        .error-message {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #666;
+            margin-bottom: 40px;
+        }
+
+        .recovery-section {
+            background:
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 10px,
+                    rgba(52, 152, 219, 0.05) 10px,
+                    rgba(52, 152, 219, 0.05) 11px
+                ),
+                rgba(52, 152, 219, 0.1);
+            border: 2px dotted #3498db;
+            border-radius: 0;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 3px 3px 0px rgba(52, 152, 219, 0.2);
+        }
+
+        .recovery-title {
+            font-size: 1.2rem;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-weight: 400;
+            text-transform: lowercase;
+        }
+
+        .error-actions {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .error-btn, .cta-button {
+            padding: 15px 30px;
+            border: 3px dotted #dc3545;
+            border-radius: 0;
+            background:
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 20px,
+                    rgba(220, 53, 69, 0.05) 20px,
+                    rgba(220, 53, 69, 0.05) 21px
+                ),
+                rgba(252, 248, 240, 0.9);
+            color: #dc3545;
+            text-decoration: none;
+            font-family: 'PT Mono', monospace;
+            font-size: 16px;
+            font-weight: 400;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-transform: lowercase;
+            box-shadow: 3px 3px 0px rgba(220, 53, 69, 0.3);
+            display: inline-block;
+        }
+
+        .error-btn:hover, .cta-button:hover {
+            background: #dc3545;
+            color: #fcf8f0;
+            box-shadow: 5px 5px 0px rgba(220, 53, 69, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .error-btn.primary {
+            background: #dc3545;
+            color: #fcf8f0;
+            border-color: #dc3545;
+        }
+
+        .error-btn.primary:hover {
+            background: #c82333;
+            border-color: #c82333;
+            box-shadow: 5px 5px 0px rgba(200, 35, 51, 0.4);
+        }
+
+        .error-btn.secondary {
+            border-color: #8b7355;
+            color: #8b7355;
+            background:
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 20px,
+                    rgba(139, 115, 85, 0.05) 20px,
+                    rgba(139, 115, 85, 0.05) 21px
+                ),
+                rgba(252, 248, 240, 0.9);
+            box-shadow: 3px 3px 0px rgba(139, 115, 85, 0.3);
+        }
+
+        .error-btn.secondary:hover {
+            background: #8b7355;
+            color: #fcf8f0;
+            box-shadow: 5px 5px 0px rgba(139, 115, 85, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .error-content {
+                padding: 30px 25px;
+                margin: 10px;
+            }
+
+            .error-title {
+                font-size: 3.5rem;
+            }
+
+            .error-subtitle {
+                font-size: 1.3rem;
+            }
+
+            .error-actions {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .error-btn, .cta-button {
+                width: 100%;
+                max-width: 280px;
+                text-align: center;
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-content">
+            <h1 class="error-title">404</h1>
+            <h2 class="error-subtitle">seems like you're lost...</h2>
+
+            <div class="error-message">
+                <p>this page doesn't exist, but that's okay. sometimes getting lost leads to the most meaningful discoveries.</p>
+            </div>
+
+            <!-- Session Recovery Section (shown if session exists) -->
+            <div id="recovery-section" class="recovery-section hidden">
+                <div class="recovery-title">we found your story in progress</div>
+                <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                    it looks like you were working on something. would you like to continue where you left off?
+                </p>
+                <div class="error-actions">
+                    <button id="continue-btn" class="error-btn primary">continue your story</button>
+                    <button id="restart-btn" class="error-btn secondary">start fresh</button>
+                </div>
+            </div>
+
+            <!-- Default Actions -->
+            <div id="default-actions" class="error-actions">
+                <a href="/" class="error-btn primary">back to the map</a>
+                <a href="/submit" class="error-btn">share your story</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check for existing session and show recovery options
+        function checkForSession() {
+            const sessionId = localStorage.getItem('breakup-map-session');
+            const savedProgress = localStorage.getItem('breakup-map-progress');
+
+            if (sessionId && savedProgress) {
+                const progress = JSON.parse(savedProgress);
+                if (progress.stepCompleted > 0) {
+                    document.getElementById('recovery-section').classList.remove('hidden');
+                    document.getElementById('default-actions').classList.add('hidden');
+                }
+            }
+        }
+
+        // Handle continue button
+        document.getElementById('continue-btn')?.addEventListener('click', () => {
+            const progress = JSON.parse(localStorage.getItem('breakup-map-progress') || '{}');
+            const nextStep = Math.min(progress.stepCompleted + 1, 7);
+            window.location.href = `/submit#step-${nextStep}`;
+        });
+
+        // Handle restart button
+        document.getElementById('restart-btn')?.addEventListener('click', () => {
+            if (confirm('Are you sure? This will delete your current progress.')) {
+                localStorage.removeItem('breakup-map-session');
+                localStorage.removeItem('breakup-map-progress');
+                window.location.href = '/submit';
+            }
+        });
+
+        // Check for session on load
+        checkForSession();
+    </script>
+</body>
+</html>
