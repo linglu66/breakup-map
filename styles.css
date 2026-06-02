@@ -554,7 +554,7 @@ input, textarea, .popup-story, .popup-location {
     margin-bottom: 20px;
 }
 
-@media (min-width: 768px) and (max-width: 1024px) {
+@media (min-width: 769px) and (max-width: 1024px) {
     .map-form-container {
         flex-direction: row;
         height: calc(100vh - 120px);

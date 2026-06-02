@@ -1,6 +1,6 @@
 // Supabase Configuration and Progressive Saving
-const SUPABASE_URL = 'https://hcdtrmealydzdqubybwj.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjZHRybWVhbHlkemRxdWJ5YndqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI5NzU2NjUsImV4cCI6MjA2ODU1MTY2NX0.c2Nh2XotOR9xoR2aW0xx-qZkG1BlLZSmvkhMfcR95EE';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Initialize Supabase client
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeSession();
 });
 
-mapboxgl.accessToken = 'pk.eyJ1IjoibGluZ2x1NjYiLCJhIjoiY21jemNneWtwMHRpazJxcHo4ejE3eWo3MyJ9.jprho4oY5mPdmieXJMa2cg';
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 
 const map = new mapboxgl.Map({
     container: 'map',
@@ -533,12 +533,12 @@ function goToSubmit() {
     document.getElementById('landing-page').style.display = 'none';
     document.getElementById('submit-page').style.display = 'block';
     showStep(1);
-    
+
     // Trigger entrance animations for the intro step
     setTimeout(() => {
         triggerIntroAnimations();
     }, 100);
-    
+
     if (isLocal) {
         // Local development - use hash
         window.location.hash = 'submit';
@@ -547,6 +547,15 @@ function goToSubmit() {
         history.pushState({page: 'submit'}, 'Submit Your Story', '/submit');
     }
 }
+
+// Make functions available globally for onclick handlers
+window.goToSubmit = goToSubmit;
+window.goToStep = goToStep;
+window.goToLanding = goToLanding;
+window.startForm = startForm;
+window.submitForm = submitForm;
+window.addMemoryLocation = addMemoryLocation;
+window.removeMemoryLocation = removeMemoryLocation;
 
 function triggerIntroAnimations() {
     const submitTitle = document.querySelector('.submit-title');
@@ -954,37 +963,6 @@ function updateMemoryData(memoryId, field, value) {
     if (memoryData) {
         memoryData[field] = value;
     }
-}
-
-async function goToStep(stepNumber) {
-    // Save current step data before transitioning
-    const currentStep = document.querySelector('.form-step[style*="block"], .form-step.active');
-    
-    if (currentStep) {
-        const currentStepNum = parseInt(currentStep.id.replace('step-', ''));
-        
-        // Save data based on the step we're leaving
-        try {
-            switch (currentStepNum) {
-                case 2:
-                    await saveStep2Data();
-                    break;
-                case 3:
-                    await saveStep3Data();
-                    break;
-                case 5:
-                    await saveStep5Data();
-                    break;
-                case 7:
-                    await saveStep7Data();
-                    break;
-            }
-        } catch (error) {
-            console.error(`Error saving step ${currentStepNum} data:`, error);
-        }
-    }
-    
-    showStep(stepNumber);
 }
 
 // Helper function to reset sidebar transition styles
