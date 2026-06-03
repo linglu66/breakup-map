@@ -422,11 +422,14 @@ if (mapContainer) {
     mapContainer.classList.add('loading');
 }
 
+// Check if mobile for better map positioning
+const isMobile = window.innerWidth <= 768;
+
 const map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/mapbox/light-v11',
-    center: [-74.0060, 40.7128],
-    zoom: 10,
+    center: isMobile ? [-73.95, 40.73] : [-74.0060, 40.7128], // Better mobile centering
+    zoom: isMobile ? 11.5 : 10, // Closer zoom on mobile
     pitch: 0,
     bearing: 0
 });
@@ -2578,50 +2581,53 @@ function setupIOSViewportFix() {
         console.log('iOS Safari detected, applying viewport fixes');
 
         function setDynamicHeight() {
-            // Use visualViewport if available (iOS 13+), fallback to window.innerHeight
-            const height = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+            // Defer execution to avoid conflicts with Google Maps initialization
+            setTimeout(() => {
+                // Use visualViewport if available (iOS 13+), fallback to window.innerHeight
+                const height = window.visualViewport ? window.visualViewport.height : window.innerHeight;
 
-            // Fix outermost containers first
-            const body = document.body;
-            const container = document.querySelector('.container');
-            const sharedMapContainer = document.querySelector('.shared-map-container');
+                // Fix outermost containers first
+                const body = document.body;
+                const container = document.querySelector('.container');
+                const sharedMapContainer = document.querySelector('.shared-map-container');
 
-            // Remove height constraints from outer containers
-            if (body) {
-                body.style.height = '100%';
-                body.style.minHeight = `${height}px`;
-            }
-            if (container) {
-                container.style.height = `${height}px`;
-                container.style.maxHeight = `${height}px`;
-            }
-            if (sharedMapContainer) {
-                sharedMapContainer.style.height = `${height}px`;
-                sharedMapContainer.style.maxHeight = `${height}px`;
-            }
+                // Remove height constraints from outer containers
+                if (body) {
+                    body.style.height = '100%';
+                    body.style.minHeight = `${height}px`;
+                }
+                if (container) {
+                    container.style.height = `${height}px`;
+                    container.style.maxHeight = `${height}px`;
+                }
+                if (sharedMapContainer) {
+                    sharedMapContainer.style.height = `${height}px`;
+                    sharedMapContainer.style.maxHeight = `${height}px`;
+                }
 
-            // Fix form containers
-            const formContainers = document.querySelectorAll('.visual-form-container, .story-container, .timeline-container');
-            formContainers.forEach(container => {
-                // Set explicit height with JavaScript, accounting for safe areas
-                const containerHeight = Math.max(height - 60, 400); // Minimum 400px height
-                container.style.minHeight = `${containerHeight}px`;
-                container.style.maxHeight = `${containerHeight}px`;
-                container.style.height = `${containerHeight}px`;
-            });
+                // Fix form containers
+                const formContainers = document.querySelectorAll('.visual-form-container, .story-container, .timeline-container');
+                formContainers.forEach(container => {
+                    // Set explicit height with JavaScript, accounting for safe areas
+                    const containerHeight = Math.max(height - 60, 400); // Minimum 400px height
+                    container.style.minHeight = `${containerHeight}px`;
+                    container.style.maxHeight = `${containerHeight}px`;
+                    container.style.height = `${containerHeight}px`;
+                });
 
-            // Ensure submit buttons are visible by adjusting scroll position if needed
-            const activeStep = document.querySelector('.form-step[style*="block"], .form-step.active');
-            if (activeStep) {
-                const submitButton = activeStep.querySelector('.btn-next, .btn-submit-simple');
-                if (submitButton) {
-                    const rect = submitButton.getBoundingClientRect();
-                    if (rect.bottom > height) {
-                        // Button is cut off, scroll it into view
-                        submitButton.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                // Ensure submit buttons are visible by adjusting scroll position if needed
+                const activeStep = document.querySelector('.form-step[style*="block"], .form-step.active');
+                if (activeStep) {
+                    const submitButton = activeStep.querySelector('.btn-next, .btn-submit-simple');
+                    if (submitButton) {
+                        const rect = submitButton.getBoundingClientRect();
+                        if (rect.bottom > height) {
+                            // Button is cut off, scroll it into view
+                            submitButton.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                        }
                     }
                 }
-            }
+            }, 1000); // Delay to ensure Google Maps is loaded
         }
 
         // Set initial height

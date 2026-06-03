@@ -902,6 +902,23 @@ body.loading .loading-overlay {
     padding-bottom: 10px;
 }
 
+/* Mobile: Make title single line and reduce spacing */
+@media (max-width: 768px) {
+    .form-section h2 {
+        font-size: 20px !important;
+        line-height: 1.2 !important;
+        margin: 0 0 8px 0 !important;
+        padding-bottom: 5px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+
+    .input-group {
+        margin-top: 5px !important;
+    }
+}
+
 /* Special styling for timeline title */
 .timeline-container h2 {
     color: #4a3c2a;
@@ -1402,19 +1419,22 @@ body.loading .loading-overlay {
     }
     
     .visual-form-container, .story-container, .timeline-container {
-        margin: 0;
-        padding: 20px 20px 100px 20px; /* Increased bottom padding for iOS */
-        width: 100%;
-        min-height: calc(100vh - 60px); /* Reduced offset for mobile */
-        min-height: calc(100svh - 60px); /* Small viewport height - more reliable on iOS */
-        max-height: calc(100vh - 60px);
-        max-height: calc(100svh - 60px);
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-start;
-        box-sizing: border-box;
-        overflow-y: auto; /* Allow scrolling within container */
-        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        /* BRUTE FORCE MOBILE FIXES - Override everything with !important */
+        margin: 0 !important;
+        padding: 20px 20px 200px 20px !important; /* Massive bottom padding */
+        width: 100% !important;
+        min-height: 100vh !important; /* Full viewport height */
+        min-height: 100svh !important;
+        max-height: none !important; /* Remove height constraints */
+        height: auto !important; /* Let content determine height */
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-start !important;
+        box-sizing: border-box !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+        overscroll-behavior: contain !important;
     }
     
          .map-form-sidebar {
@@ -1572,19 +1592,22 @@ body.loading .loading-overlay {
     }
     
     .visual-form-container, .story-container, .timeline-container {
-        padding: 20px 20px 100px 20px; /* Increased bottom padding for iOS */
-        margin: 0;
-        width: 100%;
-        min-height: calc(100vh - 60px); /* Reduced offset for mobile */
-        min-height: calc(100svh - 60px); /* Small viewport height - more reliable on iOS */
-        max-height: calc(100vh - 60px);
-        max-height: calc(100svh - 60px);
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-start;
-        box-sizing: border-box;
-        overflow-y: auto; /* Allow scrolling within container */
-        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        /* BRUTE FORCE MOBILE FIXES - Override everything with !important */
+        padding: 20px 20px 200px 20px !important; /* Massive bottom padding */
+        margin: 0 !important;
+        width: 100% !important;
+        min-height: 100vh !important; /* Full viewport height */
+        min-height: 100svh !important;
+        max-height: none !important; /* Remove height constraints */
+        height: auto !important; /* Let content determine height */
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-start !important;
+        box-sizing: border-box !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+        overscroll-behavior: contain !important;
     }
     
          .map-form-sidebar {
