@@ -916,9 +916,6 @@ body.loading .loading-overlay {
         line-height: 1.2 !important;
         margin: 0 !important;
         padding-bottom: 0px !important;
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
     }
 
     .form-section {
