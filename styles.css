@@ -1367,8 +1367,11 @@ body.loading .loading-overlay {
     .cta-button {
         padding: 16px 32px;
         font-size: 1rem;
-        width: 100%;
-        max-width: 280px;
+        width: 100% !important;
+        max-width: none !important;
+        text-align: center !important;
+        display: block !important;
+        margin: 0 auto !important;
     }
     
     #map {
