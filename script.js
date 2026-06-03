@@ -416,6 +416,12 @@ function setupUnloadWarning() {
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 
+// Add loading state to map container to prevent visual jank
+const mapContainer = document.getElementById('map');
+if (mapContainer) {
+    mapContainer.classList.add('loading');
+}
+
 const map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/mapbox/light-v11',
@@ -607,6 +613,16 @@ let cycleIndex = 0;
 let cycleInterval = null;
 
 map.on('load', () => {
+    // Remove loading state and add loaded state to prevent visual jank
+    const mapContainer = document.getElementById('map');
+    if (mapContainer) {
+        mapContainer.classList.remove('loading');
+        mapContainer.classList.add('loaded');
+    }
+
+    // Ensure proper map sizing
+    map.resize();
+
     // Collect active stories for cycling
     activeStories = sampleStories.filter(story => story.isActive);
     console.log('Active stories for cycling:', activeStories.length);
@@ -2549,4 +2565,95 @@ function showThankYouPage() {
             thankYouPage.classList.add('active');
         }, 10);
     }
-} 
+}
+
+// iOS Safari Viewport Fix - Dynamic Height Calculation
+function setupIOSViewportFix() {
+    // Detect iOS Safari
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    const isIOSSafari = isIOS && isSafari;
+
+    if (isIOSSafari) {
+        console.log('iOS Safari detected, applying viewport fixes');
+
+        function setDynamicHeight() {
+            // Use visualViewport if available (iOS 13+), fallback to window.innerHeight
+            const height = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+
+            // Fix outermost containers first
+            const body = document.body;
+            const container = document.querySelector('.container');
+            const sharedMapContainer = document.querySelector('.shared-map-container');
+
+            // Remove height constraints from outer containers
+            if (body) {
+                body.style.height = '100%';
+                body.style.minHeight = `${height}px`;
+            }
+            if (container) {
+                container.style.height = `${height}px`;
+                container.style.maxHeight = `${height}px`;
+            }
+            if (sharedMapContainer) {
+                sharedMapContainer.style.height = `${height}px`;
+                sharedMapContainer.style.maxHeight = `${height}px`;
+            }
+
+            // Fix form containers
+            const formContainers = document.querySelectorAll('.visual-form-container, .story-container, .timeline-container');
+            formContainers.forEach(container => {
+                // Set explicit height with JavaScript, accounting for safe areas
+                const containerHeight = Math.max(height - 60, 400); // Minimum 400px height
+                container.style.minHeight = `${containerHeight}px`;
+                container.style.maxHeight = `${containerHeight}px`;
+                container.style.height = `${containerHeight}px`;
+            });
+
+            // Ensure submit buttons are visible by adjusting scroll position if needed
+            const activeStep = document.querySelector('.form-step[style*="block"], .form-step.active');
+            if (activeStep) {
+                const submitButton = activeStep.querySelector('.btn-next, .btn-submit-simple');
+                if (submitButton) {
+                    const rect = submitButton.getBoundingClientRect();
+                    if (rect.bottom > height) {
+                        // Button is cut off, scroll it into view
+                        submitButton.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                    }
+                }
+            }
+        }
+
+        // Set initial height
+        setDynamicHeight();
+
+        // Update on viewport changes (address bar hide/show, orientation change)
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', setDynamicHeight);
+        }
+        window.addEventListener('resize', setDynamicHeight);
+        window.addEventListener('orientationchange', () => {
+            // Delay to allow orientation change to complete
+            setTimeout(setDynamicHeight, 100);
+        });
+
+        // Re-calculate when step changes (since containers might be different)
+        const originalGoToStep = window.goToStep;
+        if (originalGoToStep) {
+            window.goToStep = function(stepNumber) {
+                const result = originalGoToStep.call(this, stepNumber);
+                setTimeout(setDynamicHeight, 100); // Recalculate after step transition
+                return result;
+            };
+        }
+
+        // Add iOS-specific class for additional CSS targeting
+        document.body.classList.add('ios-safari');
+    }
+}
+
+// Initialize iOS viewport fix when DOM is ready
+document.addEventListener('DOMContentLoaded', setupIOSViewportFix);
+
+// Also run after the page fully loads to ensure all elements are ready
+window.addEventListener('load', setupIOSViewportFix);

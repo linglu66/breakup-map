@@ -37,6 +37,44 @@ body.map-form-active {
     width: 100%;
 }
 
+/* iOS Safari specific fixes */
+body.ios-safari {
+    height: 100% !important;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+
+body.ios-safari .container {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+}
+
+body.ios-safari .shared-map-container {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+}
+
+/* iOS Safari form container fixes */
+body.ios-safari .visual-form-container,
+body.ios-safari .story-container,
+body.ios-safari .timeline-container {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain;
+    padding-bottom: 120px !important; /* Extra padding for iOS */
+}
+
+/* Ensure buttons are always accessible on iOS */
+body.ios-safari .btn-next,
+body.ios-safari .btn-submit-simple,
+body.ios-safari .cta-button {
+    position: relative;
+    z-index: 1000;
+    margin-bottom: 30px;
+}
+
 /* Allow text selection in input areas */
 input, textarea, .popup-story, .popup-location {
     -webkit-user-select: text;
@@ -253,6 +291,20 @@ body.loading .loading-overlay {
     height: 100%;
     min-height: 100vh;
     border-left: 2px dotted #dc3545;
+    /* Prevent positioning jank during load */
+    position: relative;
+    overflow: hidden;
+    background: #f8f6f0; /* Match page background during load */
+}
+
+/* Map loading states to prevent visual jank */
+#map.loading {
+    opacity: 0.8;
+}
+
+#map.loaded {
+    opacity: 1;
+    transition: opacity 0.3s ease-in-out;
 }
 
 .map-overlay {
