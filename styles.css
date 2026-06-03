@@ -1344,7 +1344,7 @@ body.loading .loading-overlay {
     }
     
     .left-column {
-        padding: 30px 20px;
+        padding: 20px 20px 80px 20px !important;
         border-right: none;
         border-bottom: 2px dotted #dc3545;
     }
@@ -1352,16 +1352,17 @@ body.loading .loading-overlay {
     .title {
         font-size: 2.2rem;
         line-height: 1.2;
+        margin-bottom: 10px !important;
     }
-    
+
     .subheading {
         font-size: 1rem;
-        margin-bottom: 25px;
+        margin-bottom: 15px !important;
     }
-    
+
     .body-text {
         font-size: 0.95rem;
-        margin-bottom: 30px;
+        margin-bottom: 20px !important;
     }
     
     .cta-button {
