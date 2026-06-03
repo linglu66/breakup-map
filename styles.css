@@ -673,7 +673,7 @@ body.loading .loading-overlay {
 
 .map-form-sidebar {
     width: 100%;
-    background: 
+    background:
         repeating-linear-gradient(
             0deg,
             transparent,
@@ -689,6 +689,13 @@ body.loading .loading-overlay {
     border-left: 3px dotted #dc3545;
     transition: opacity 0.5s ease-out;
     box-sizing: border-box;
+}
+
+/* Only add bottom padding on mobile/tablet */
+@media (max-width: 1024px) {
+    .map-form-sidebar {
+        padding-bottom: 80px !important;
+    }
 }
 
 .map-form-sidebar.content-changing {
@@ -912,6 +919,10 @@ body.loading .loading-overlay {
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
+    }
+
+    .form-section {
+        margin-bottom: 0px !important;
     }
 
     .input-group {
@@ -1442,7 +1453,7 @@ body.loading .loading-overlay {
     }
     
          .map-form-sidebar {
-         padding: 15px;
+         padding: 15px 15px 80px 15px !important;
          max-height: 200px;
          overflow-y: auto;
          overflow-x: hidden;
@@ -1454,8 +1465,8 @@ body.loading .loading-overlay {
      }
     
          #form-map {
-         height: calc(100vh - 220px);
-         min-height: calc(100vh - 220px);
+         height: 50vh;
+         min-height: 50vh;
          flex: 1;
      }
     
@@ -1463,6 +1474,7 @@ body.loading .loading-overlay {
         flex-direction: column;
         gap: 12px;
         margin-top: 0px !important;
+        margin-bottom: 40px !important;
         padding-top: 15px;
     }
     
@@ -1615,7 +1627,7 @@ body.loading .loading-overlay {
     }
     
          .map-form-sidebar {
-         padding: 10px;
+         padding: 10px 10px 80px 10px !important;
          max-height: 240px;
          overflow-y: auto;
          overflow-x: hidden;
@@ -1627,8 +1639,8 @@ body.loading .loading-overlay {
      }
     
          #form-map {
-         height: calc(100vh - 200px);
-         min-height: calc(100vh - 200px);
+         height: 45vh;
+         min-height: 45vh;
          flex: 1;
      }
     
@@ -1773,13 +1785,13 @@ body.loading .loading-overlay {
      }
      
      #form-map {
-         height: calc(100vh - 150px);
-         min-height: calc(100vh - 150px);
+         height: 40vh;
+         min-height: 40vh;
      }
      
      .map-form-sidebar {
          max-height: 120px;
-         padding: 8px;
+         padding: 8px 8px 80px 8px !important;
          overflow-x: hidden;
          width: 100%;
          box-sizing: border-box;

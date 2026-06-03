@@ -248,8 +248,27 @@
         // Handle continue button
         document.getElementById('continue-btn')?.addEventListener('click', () => {
             const progress = JSON.parse(localStorage.getItem('breakup-map-progress') || '{}');
-            const nextStep = Math.min(progress.stepCompleted + 1, 7);
-            window.location.href = `/submit#step-${nextStep}`;
+
+            // Check if user was already on a specific step based on current URL
+            const currentPath = window.location.pathname;
+            const currentHash = window.location.hash;
+
+            if (currentPath === '/submit' || currentHash.startsWith('#step-')) {
+                // If user was on submit page or a specific step, stay there
+                if (currentHash.startsWith('#step-')) {
+                    window.location.href = `/${currentHash}`;
+                } else {
+                    const nextStep = Math.min(progress.stepCompleted + 1, 7);
+                    window.location.href = `/#submit`;
+                    if (nextStep > 1) {
+                        window.location.href = `/#step-${nextStep}`;
+                    }
+                }
+            } else {
+                // Default behavior - go to next step
+                const nextStep = Math.min(progress.stepCompleted + 1, 7);
+                window.location.href = `/#step-${nextStep}`;
+            }
         });
 
         // Handle restart button
