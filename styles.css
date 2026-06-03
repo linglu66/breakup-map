@@ -1351,15 +1351,18 @@ body.loading .loading-overlay {
     
     .visual-form-container, .story-container, .timeline-container {
         margin: 0;
-        padding: 40px 20px 60px 20px; /* Extra bottom padding for buttons */
+        padding: 20px 20px 100px 20px; /* Increased bottom padding for iOS */
         width: 100%;
-        min-height: calc(100vh - 80px); /* Account for mobile browser UI */
-        min-height: calc(100dvh - 80px); /* Dynamic viewport height for newer browsers */
+        min-height: calc(100vh - 60px); /* Reduced offset for mobile */
+        min-height: calc(100svh - 60px); /* Small viewport height - more reliable on iOS */
+        max-height: calc(100vh - 60px);
+        max-height: calc(100svh - 60px);
         display: flex;
         flex-direction: column;
-        justify-content: flex-start; /* Changed from center to prevent button hiding */
+        justify-content: flex-start;
         box-sizing: border-box;
-        overflow: visible;
+        overflow-y: auto; /* Allow scrolling within container */
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
     }
     
          .map-form-sidebar {
@@ -1517,16 +1520,19 @@ body.loading .loading-overlay {
     }
     
     .visual-form-container, .story-container, .timeline-container {
-        padding: 30px 20px 60px 20px; /* Extra bottom padding for buttons */
+        padding: 20px 20px 100px 20px; /* Increased bottom padding for iOS */
         margin: 0;
         width: 100%;
-        min-height: calc(100vh - 80px); /* Account for mobile browser UI */
-        min-height: calc(100dvh - 80px); /* Dynamic viewport height for newer browsers */
+        min-height: calc(100vh - 60px); /* Reduced offset for mobile */
+        min-height: calc(100svh - 60px); /* Small viewport height - more reliable on iOS */
+        max-height: calc(100vh - 60px);
+        max-height: calc(100svh - 60px);
         display: flex;
         flex-direction: column;
-        justify-content: flex-start; /* Changed from center to prevent button hiding */
+        justify-content: flex-start;
         box-sizing: border-box;
-        overflow: visible;
+        overflow-y: auto; /* Allow scrolling within container */
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
     }
     
          .map-form-sidebar {
