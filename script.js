@@ -1381,12 +1381,17 @@ async function reverseGeocode(coords, inputId) {
             const input = document.getElementById(inputId);
             if (input) {
                 input.value = streetName;
+            }
 
-                // If this is a memory location input, update the stored data
-                if (inputId.startsWith('memory-')) {
-                    const memoryId = inputId.replace('memory-', '');
-                    updateMemoryData(memoryId, 'description', streetName);
-                }
+            // Update popup for end-location marker
+            if (inputId === 'end-location' && formMapMarker && formMapMarker.getPopup()) {
+                formMapMarker.getPopup().setHTML(`<div class="popup-location">${streetName}</div>`);
+            }
+
+            // If this is a memory location input, update the stored data
+            if (inputId.startsWith('memory-')) {
+                const memoryId = inputId.replace('memory-', '');
+                updateMemoryData(memoryId, 'description', streetName);
             }
         } else {
             const input = document.getElementById(inputId);
@@ -1810,14 +1815,20 @@ function handleMapClick(e) {
         formMapMarker = new mapboxgl.Marker({color: '#e74c3c'})
             .setLngLat(coords)
             .addTo(sharedFormMap);
-        
+
+        // Add popup to show address (will be updated by reverseGeocode)
+        const popup = new mapboxgl.Popup({offset: 25, closeButton: false, closeOnClick: false})
+            .setHTML('<div class="popup-location">Loading address...</div>');
+        formMapMarker.setPopup(popup);
+
         sharedFormMap.flyTo({
             center: coords,
             zoom: 16,
-                duration: 1000
-            });
-        
+            duration: 1000
+        });
+
         reverseGeocode(coords, 'end-location');
+
         formData.endLocation = coords;
         formData.endLocationData = null;
         
