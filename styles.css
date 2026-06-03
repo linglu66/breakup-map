@@ -907,8 +907,8 @@ body.loading .loading-overlay {
     .form-section h2 {
         font-size: 20px !important;
         line-height: 1.2 !important;
-        margin: 0 0 8px 0 !important;
-        padding-bottom: 5px !important;
+        margin: 0 !important;
+        padding-bottom: 0px !important;
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
@@ -1462,7 +1462,7 @@ body.loading .loading-overlay {
     .step-navigation {
         flex-direction: column;
         gap: 12px;
-        margin-top: 20px;
+        margin-top: 0px !important;
         padding-top: 15px;
     }
     
