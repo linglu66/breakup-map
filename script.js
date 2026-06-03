@@ -461,21 +461,49 @@ const sampleStories = [
     {
         location: "Brooklyn Bridge, NYC",
         coordinates: [-73.9969, 40.7061],
-        story: "We walked here every Sunday morning. Now I take the Manhattan Bridge instead.",
+        story: "we walked here every Sunday morning.",
         isDefault: true,
         isActive: true
     },
     {
         location: "Central Park, NYC",
         coordinates: [-73.9654, 40.7829],
-        story: "Three years of picnics under that oak tree. I still avoid the reservoir path.",
+        story: "i think of her when i go through the reservoir path",
         isDefault: false,
         isActive: true
     },
     {
-        location: "Washington Square Park, NYC", 
+        location: "Washington Square Park, NYC",
         coordinates: [-73.9976, 40.7308],
-        story: "Where we had our first fight and our last goodbye. The fountain keeps playing the same song.",
+        story: "first fight, last goodbye. sometimes i sit by the fountain and just think",
+        isDefault: false,
+        isActive: true
+    },
+    {
+        location: "Fort Tryon Park, NYC",
+        coordinates: [-73.9314, 40.8648],
+        story: "it's so big that the chances of you coming across the place your heart was broken are just so low",
+        isDefault: false,
+        isActive: true
+    },
+    {
+        location: "Manhattan Bridge, NYC",
+        coordinates: [-73.9903, 40.7072],
+        story: "short and sweet and would recommend",
+        isDefault: false,
+        isActive: true
+    },
+    {
+        location: "Bryant Park, NYC",
+        coordinates: [-73.9835, 40.7536],
+        story: "it was during the summer so it was warm out",
+        isDefault: false,
+        isActive: true
+    },
+    {
+        location: "Whole Foods Houston & Bowery, NYC",
+        coordinates: [-73.9943, 40.7254],
+        story: "it was quiet enough to talk but bustling enough that no one was paying attention to us",
         isDefault: false,
         isActive: true
     },
@@ -823,15 +851,15 @@ function triggerIntroAnimations() {
     // Delay animations until after page-wide fade completes (after 1200ms)
     setTimeout(() => {
         if (submitTitle) submitTitle.classList.add('animate-in');
-    }, 1300);
+    }, 200);
 
     setTimeout(() => {
         if (submitSubtext) submitSubtext.classList.add('animate-in');
-    }, 1500);
+    }, 400);
 
     setTimeout(() => {
         if (introButtons) introButtons.classList.add('animate-in');
-    }, 1700);
+    }, 600);
 }
 
 function triggerSidebarContentAnimations() {
@@ -870,7 +898,18 @@ function triggerSidebarContentAnimations() {
 function goToLanding() {
     document.getElementById('submit-page').style.display = 'none';
     document.getElementById('landing-page').style.display = 'grid';
-    
+
+    // Remove map form active classes to restore scroll behavior
+    document.body.classList.remove('map-form-active');
+    document.querySelector('.container').classList.remove('map-form-active');
+
+    // Hide shared map container
+    const sharedMapContainer = document.getElementById('shared-map-container');
+    if (sharedMapContainer) {
+        sharedMapContainer.classList.remove('show');
+        sharedMapContainer.style.display = 'none';
+    }
+
     // Refresh the main map after returning to landing page
     setTimeout(() => {
         if (map) {
@@ -924,30 +963,23 @@ function handleRouting() {
     const hash = window.location.hash;
 
     if (isLocal) {
-        // Local development - use hash routing
-        if (hash === '#submit' || hash.startsWith('#step-')) {
+        // Local development - simplified routing (no deep linking)
+        if (hash === '#submit') {
             showSubmitPage();
-            // Handle direct step navigation
-            if (hash.startsWith('#step-')) {
-                const stepNum = parseInt(hash.replace('#step-', ''));
-                if (!isNaN(stepNum) && stepNum >= 1 && stepNum <= 7) {
-                    setTimeout(() => goToStep(stepNum), 100);
-                }
-            }
+        } else if (hash.startsWith('#step-')) {
+            // Redirect step URLs back to home to avoid broken states
+            window.location.hash = '';
+            showLandingPage();
         } else {
             showLandingPage();
         }
     } else {
-        // Hosted - use path routing
-        if (path === '/submit') {
+        // Hosted - simplified routing (no deep linking)
+        if (path === '/submit' && !hash.startsWith('#step-')) {
             showSubmitPage();
-            // Handle direct step navigation via hash
-            if (hash.startsWith('#step-')) {
-                const stepNum = parseInt(hash.replace('#step-', ''));
-                if (!isNaN(stepNum) && stepNum >= 1 && stepNum <= 7) {
-                    setTimeout(() => goToStep(stepNum), 100);
-                }
-            }
+        } else if (path === '/submit' && hash.startsWith('#step-')) {
+            // Redirect step URLs back to home to avoid broken states
+            window.location.href = '/';
         } else {
             showLandingPage();
         }
@@ -1000,6 +1032,8 @@ function showStep(stepNumber) {
     if (isMapStep) {
         if (!wasMapStep) {
             // Transitioning TO map from non-map step
+            document.body.classList.add('map-form-active');
+            document.querySelector('.container').classList.add('map-form-active');
             sharedMapContainer.style.display = 'block';
             setTimeout(() => {
                 sharedMapContainer.classList.add('show');
@@ -1012,6 +1046,8 @@ function showStep(stepNumber) {
     } else {
         if (wasMapStep) {
             // Transitioning FROM map to non-map step
+            document.body.classList.remove('map-form-active');
+            document.querySelector('.container').classList.remove('map-form-active');
             sharedMapContainer.classList.remove('show');
             setTimeout(() => {
                 sharedMapContainer.style.display = 'none';

@@ -30,6 +30,13 @@ body {
     user-select: none;
 }
 
+/* Disable body scroll when map form is active */
+body.map-form-active {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+}
+
 /* Allow text selection in input areas */
 input, textarea, .popup-story, .popup-location {
     -webkit-user-select: text;
@@ -42,6 +49,11 @@ input, textarea, .popup-story, .popup-location {
     position: relative;
     height: 100vh;
     overflow-y: auto; /* Allow scrolling within the container */
+}
+
+/* Disable container scroll when map form is active */
+.container.map-form-active {
+    overflow: hidden;
 }
 
 /* Loading state - hide content until maps are ready */
@@ -1339,12 +1351,13 @@ body.loading .loading-overlay {
     
     .visual-form-container, .story-container, .timeline-container {
         margin: 0;
-        padding: 40px 20px;
+        padding: 40px 20px 60px 20px; /* Extra bottom padding for buttons */
         width: 100%;
-        min-height: 100vh;
+        min-height: calc(100vh - 80px); /* Account for mobile browser UI */
+        min-height: calc(100dvh - 80px); /* Dynamic viewport height for newer browsers */
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        justify-content: flex-start; /* Changed from center to prevent button hiding */
         box-sizing: border-box;
         overflow: visible;
     }
@@ -1355,6 +1368,8 @@ body.loading .loading-overlay {
          overflow-y: auto;
          overflow-x: hidden;
          flex-shrink: 0;
+         -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+         overscroll-behavior: contain; /* Prevent scroll chaining */
          width: 100%;
          box-sizing: border-box;
      }
@@ -1502,13 +1517,14 @@ body.loading .loading-overlay {
     }
     
     .visual-form-container, .story-container, .timeline-container {
-        padding: 30px 20px;
+        padding: 30px 20px 60px 20px; /* Extra bottom padding for buttons */
         margin: 0;
         width: 100%;
-        min-height: 100vh;
+        min-height: calc(100vh - 80px); /* Account for mobile browser UI */
+        min-height: calc(100dvh - 80px); /* Dynamic viewport height for newer browsers */
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        justify-content: flex-start; /* Changed from center to prevent button hiding */
         box-sizing: border-box;
         overflow: visible;
     }
@@ -1519,6 +1535,8 @@ body.loading .loading-overlay {
          overflow-y: auto;
          overflow-x: hidden;
          flex-shrink: 0;
+         -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+         overscroll-behavior: contain; /* Prevent scroll chaining */
          width: 100%;
          box-sizing: border-box;
      }
