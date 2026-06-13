@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heartbreak in NYC</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=PT+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'PT Mono', monospace;
+            background: #0a0a0a;
+            height: 100vh;
+            overflow: hidden;
+            color: #f0ebe3;
+        }
+
+        /* === BORDER FRAME === */
+        .frame {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 100;
+        }
+        .frame-border {
+            position: absolute;
+            background: #f0ebe3;
+        }
+        .frame-top { top: 0; left: 0; right: 0; height: 48px; }
+        .frame-bottom { bottom: 0; left: 0; right: 0; height: 48px; }
+        .frame-left { top: 0; bottom: 0; left: 0; width: 48px; }
+        .frame-right { top: 0; bottom: 0; right: 0; width: 48px; }
+
+        .frame-title {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            letter-spacing: 6px;
+            text-transform: lowercase;
+            color: #dc3545;
+            font-weight: 400;
+        }
+        .frame-subtitle {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            letter-spacing: 3px;
+            color: #999;
+        }
+
+        /* === MAP === */
+        #map {
+            position: absolute;
+            inset: 48px;
+        }
+
+        /* === IDLE OVERLAY === */
+        .idle-overlay {
+            position: fixed;
+            inset: 48px;
+            background: rgba(10, 10, 10, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 90;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1.2s ease;
+        }
+        .idle-overlay.visible {
+            opacity: 1;
+        }
+        .idle-text {
+            font-size: 16px;
+            letter-spacing: 4px;
+            color: #f0ebe3;
+            text-transform: lowercase;
+            animation: pulse-text 3s ease-in-out infinite;
+        }
+        @keyframes pulse-text {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+
+        /* === CUSTOM MARKERS === */
+        .marker-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #dc3545;
+            border: 2px solid #f0ebe3;
+            cursor: pointer;
+            box-shadow: 0 0 12px rgba(220, 53, 69, 0.5);
+        }
+        .marker-dot:hover {
+            box-shadow: 0 0 20px rgba(220, 53, 69, 0.8);
+        }
+        .marker-dot.guide {
+            background: #f0ebe3;
+            border: 2px solid #f0ebe3;
+            box-shadow: 0 0 14px rgba(220, 53, 69, 0.5);
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            line-height: 1;
+            color: #dc3545;
+            -webkit-text-stroke: 1px #dc3545;
+            text-stroke: 1px #dc3545;
+        }
+        .marker-dot.guide:hover {
+            box-shadow: 0 0 24px rgba(220, 53, 69, 0.9);
+        }
+
+        /* === POPUPS === */
+        .mapboxgl-popup-content {
+            background: #1a1a1a !important;
+            border: 1px solid #333 !important;
+            border-radius: 2px !important;
+            padding: 16px 20px !important;
+            font-family: 'PT Mono', monospace !important;
+            color: #f0ebe3 !important;
+            max-width: 280px !important;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5) !important;
+        }
+        .mapboxgl-popup-tip {
+            border-top-color: #1a1a1a !important;
+        }
+        .mapboxgl-popup-close-button {
+            color: #666 !important;
+            font-size: 18px !important;
+            right: 6px !important;
+            top: 4px !important;
+        }
+        .mapboxgl-popup-close-button:hover {
+            color: #dc3545 !important;
+        }
+        .popup-location {
+            font-size: 14px;
+            color: #dc3545;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+        .popup-location.guide-location {
+            color: #dc3545;
+        }
+        .popup-story {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #ccc;
+        }
+        .popup-tag {
+            display: inline-block;
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 3px 8px;
+            border: 1px solid;
+            margin-top: 10px;
+        }
+        .popup-tag.breakup {
+            color: #dc3545;
+            border-color: #dc3545;
+        }
+        .popup-tag.guide {
+            color: #dc3545;
+            border-color: #dc3545;
+        }
+        .popup-category {
+            font-size: 12px;
+            color: #888;
+            margin-top: 6px;
+            font-style: italic;
+        }
+
+        /* === LEGEND === */
+        .legend {
+            position: fixed;
+            top: 64px;
+            left: 64px;
+            z-index: 95;
+            font-size: 13px;
+            letter-spacing: 2px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: rgba(10, 10, 10, 0.85);
+            border: 1px solid #444;
+            padding: 14px 18px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid #f0ebe3;
+            flex-shrink: 0;
+        }
+        .legend-dot.red { background: #dc3545; box-shadow: 0 0 8px rgba(220, 53, 69, 0.5); }
+        .legend-dot.blue {
+            background: #f0ebe3;
+            box-shadow: 0 0 8px rgba(220, 53, 69, 0.5);
+            font-size: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #dc3545;
+            border-color: #f0ebe3;
+        }
+
+        /* === GUIDE PANEL === */
+        .guide-panel {
+            position: fixed;
+            top: 48px;
+            right: 48px;
+            bottom: 48px;
+            width: 340px;
+            background: rgba(15, 15, 15, 0.95);
+            border-left: 1px solid #333;
+            z-index: 80;
+            transform: translateX(100%);
+            transition: transform 0.4s ease;
+            overflow-y: auto;
+            padding: 30px 24px;
+        }
+        .guide-panel.open {
+            transform: translateX(0);
+        }
+        .guide-panel::-webkit-scrollbar { width: 4px; }
+        .guide-panel::-webkit-scrollbar-track { background: transparent; }
+        .guide-panel::-webkit-scrollbar-thumb { background: #333; }
+
+        .guide-toggle {
+            position: fixed;
+            top: 64px;
+            right: 64px;
+            z-index: 95;
+            background: rgba(15, 15, 15, 0.8);
+            border: 1px solid #333;
+            color: #f0ebe3;
+            font-family: 'PT Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 2px;
+            padding: 8px 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .guide-toggle:hover {
+            border-color: #dc3545;
+            color: #dc3545;
+        }
+        .guide-toggle.active {
+            right: calc(340px + 64px);
+            border-color: #dc3545;
+            color: #dc3545;
+        }
+
+        .guide-section {
+            margin-bottom: 36px;
+        }
+        .guide-section-title {
+            font-size: 15px;
+            color: #dc3545;
+            letter-spacing: 2px;
+            margin-bottom: 6px;
+            text-transform: lowercase;
+        }
+        .guide-section-subtitle {
+            font-size: 10px;
+            color: #888;
+            margin-bottom: 18px;
+            line-height: 1.5;
+        }
+        .guide-spot {
+            margin-bottom: 20px;
+            padding-bottom: 18px;
+            border-bottom: 1px solid #222;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .guide-spot:hover {
+            padding-left: 6px;
+        }
+        .guide-spot:last-child { border-bottom: none; }
+        .guide-spot-name {
+            font-size: 11px;
+            color: #f0ebe3;
+            margin-bottom: 4px;
+        }
+        .guide-spot-desc {
+            font-size: 10px;
+            color: #888;
+            line-height: 1.5;
+        }
+        .guide-rating {
+            font-size: 10px;
+            color: #dc3545;
+            margin-top: 4px;
+        }
+        .guide-divider {
+            border: none;
+            border-top: 1px solid #222;
+            margin: 24px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- BORDER FRAME -->
+    <div class="frame">
+        <div class="frame-border frame-top"></div>
+        <div class="frame-border frame-bottom"></div>
+        <div class="frame-border frame-left"></div>
+        <div class="frame-border frame-right"></div>
+        <div class="frame-title">heartbreak in nyc</div>
+        <div class="frame-subtitle">an interactive map of love, loss, and the places that hold our stories</div>
+    </div>
+
+    <!-- MAP -->
+    <div id="map"></div>
+
+    <!-- IDLE OVERLAY -->
+    <div class="idle-overlay" id="idle-overlay">
+        <div class="idle-text">use scroll pad to move around the map</div>
+    </div>
+
+    <!-- LEGEND -->
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-dot red"></div>
+            <span>breakup stories</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot blue">&#9733;</div>
+            <span>breakup spot guide</span>
+        </div>
+    </div>
+
+    <!-- GUIDE TOGGLE -->
+    <button class="guide-toggle" id="guide-toggle" onclick="toggleGuide()">guide</button>
+
+    <!-- GUIDE PANEL -->
+    <div class="guide-panel" id="guide-panel">
+        <div style="margin-bottom: 28px;">
+            <div style="font-size: 16px; color: #f0ebe3; letter-spacing: 2px; margin-bottom: 8px;">need a spot?</div>
+            <div style="font-size: 11px; color: #888; line-height: 1.6;">here's what we recommend. a curated guide to the best (worst?) places to end it in new york city.</div>
+        </div>
+        <hr class="guide-divider">
+        <div class="guide-section">
+            <div class="guide-section-title">new york, i love you</div>
+            <div class="guide-section-subtitle">public. iconic. lowkey humiliating.</div>
+
+            <div class="guide-spot" onclick="flyToGuide(0)">
+                <div class="guide-spot-name">times square</div>
+                <div class="guide-spot-desc">step onto one of the rotating selfie platforms and immortalize your emotional spiral in glorious 60 fps</div>
+                <div class="guide-rating">foot traffic inconvenience: &hearts;&hearts;&hearts;</div>
+            </div>
+
+            <div class="guide-spot" onclick="flyToGuide(1)">
+                <div class="guide-spot-name">the moma (2nd floor, near the rothkos)</div>
+                <div class="guide-spot-desc">$30 cover charge. you'll say "we've grown apart" while staring at a canvas the color of your grief</div>
+                <div class="guide-rating">public cry visibility: &hearts;&hearts;&hearts;&hearts;&hearts;</div>
+            </div>
+
+            <div class="guide-spot" onclick="flyToGuide(2)">
+                <div class="guide-spot-name">margaritaville</div>
+                <div class="guide-spot-desc">"...and you've shown me time and time again that i cannot trust you to be considerate to me - yes i'll get the golden fried shrimp"</div>
+            </div>
+        </div>
+
+        <hr class="guide-divider">
+
+        <div class="guide-section">
+            <div class="guide-section-title">cinematic goodbyes</div>
+            <div class="guide-section-subtitle">breakups that feel like A24 movies</div>
+
+            <div class="guide-spot" onclick="flyToGuide(3)">
+                <div class="guide-spot-name">north 5th street pier bench - williamsburg</div>
+                <div class="guide-spot-desc">you came for the view, stayed for the existential clarity. feels like the city is watching, probably 10 other couples breaking up or getting together here.</div>
+                <div class="guide-rating">scenic suffering: &hearts;&hearts;&hearts;&hearts;&hearts;</div>
+            </div>
+
+            <div class="guide-spot" onclick="flyToGuide(4)">
+                <div class="guide-spot-name">hunter's point south</div>
+                <div class="guide-spot-desc">blue sky, river breeze, white dress. picturesque, even as it ended. *author's pick</div>
+                <div class="guide-rating">lighting: &hearts;&hearts;&hearts;&hearts;&hearts;&hearts;</div>
+            </div>
+
+            <div class="guide-spot" onclick="flyToGuide(5)">
+                <div class="guide-spot-name">fort tryon park (cloisters entrance)</div>
+                <div class="guide-spot-desc">a scenic locale for lovers torn apart by duty, scandal, or vibes. ideal for walking away slowly while your tulle skirts trail behind you and a quartet cover of a taylor swift song plays in your head</div>
+            </div>
+        </div>
+
+        <hr class="guide-divider">
+
+        <div class="guide-section">
+            <div class="guide-section-title">cruel and/or unusual</div>
+            <div class="guide-section-subtitle">tbh you'd be wrong for this</div>
+
+            <div class="guide-spot" onclick="flyToGuide(6)">
+                <div class="guide-spot-name">top of the empire state</div>
+                <div class="guide-spot-desc">cling to the railing while tourists shove past and a gust of wind slaps you in the face. bonus points if you thought you were getting proposed to</div>
+            </div>
+
+            <div class="guide-spot" onclick="flyToGuide(7)">
+                <div class="guide-spot-name">nypl reading room</div>
+                <div class="guide-spot-desc">you can't scream, you can't cry, you can only sit there marinating in the rejection while a guy three tables over works on his dissertation</div>
+            </div>
+
+            <div class="guide-spot" onclick="flyToGuide(8)">
+                <div class="guide-spot-name">staten island ferry</div>
+                <div class="guide-spot-desc">break up, then get trapped on a giant floating bus with 400 strangers and a 1-way ticket to staten island</div>
+            </div>
+        </div>
+
+        <hr class="guide-divider">
+        <div style="font-size: 9px; color: #555; text-align: center; letter-spacing: 1px;">
+            @fishlooker
+        </div>
+    </div>
+
+    <script src="exhibit-config.js"></script>
+    <script>
+        // =============================================
+        // MAPBOX TOKEN - loaded from exhibit-config.js
+        // =============================================
+
+        // =============================================
+        // DATA
+        // =============================================
+
+        // Actual breakup stories (from the main site)
+        const breakupStories = [
+            {
+                location: "Brooklyn Bridge",
+                coordinates: [-73.9969, 40.7061],
+                story: "we walked here every Sunday morning."
+            },
+            {
+                location: "Central Park",
+                coordinates: [-73.9654, 40.7829],
+                story: "i think of her when i go through the reservoir path"
+            },
+            {
+                location: "Washington Square Park",
+                coordinates: [-73.9976, 40.7308],
+                story: "first fight, last goodbye. sometimes i sit by the fountain and just think"
+            },
+            {
+                location: "Fort Tryon Park",
+                coordinates: [-73.9314, 40.8648],
+                story: "it's so big that the chances of you coming across the place your heart was broken are just so low"
+            },
+            {
+                location: "Manhattan Bridge",
+                coordinates: [-73.9903, 40.7072],
+                story: "short and sweet and would recommend"
+            },
+            {
+                location: "Bryant Park",
+                coordinates: [-73.9835, 40.7536],
+                story: "it was during the summer so it was warm out"
+            },
+            {
+                location: "Whole Foods Houston & Bowery",
+                coordinates: [-73.9913, 40.7234],
+                story: "it was quiet enough to talk but bustling enough that no one was paying attention to us"
+            },
+            {
+                location: "Sanuki Udon",
+                coordinates: [-73.9982, 40.7302],
+                story: null
+            },
+            {
+                location: "Washington Square Park (NE Corner)",
+                coordinates: [-73.9972, 40.7318],
+                story: null
+            },
+            {
+                location: "Equinox (Steam Room)",
+                coordinates: [-73.9819, 40.7680],
+                story: null
+            },
+            {
+                location: "The Met (Stairs)",
+                coordinates: [-73.9632, 40.7794],
+                story: null
+            },
+            {
+                location: "Teazzi LIC",
+                coordinates: [-73.942469, 40.747828],
+                story: null
+            },
+            {
+                location: "Hunter's Point South",
+                coordinates: [-73.9600, 40.7385],
+                story: null
+            },
+            {
+                location: "Bushwick Inlet Park",
+                coordinates: [-73.9627, 40.7215],
+                story: null
+            },
+            {
+                location: "PPL Williamsburg",
+                coordinates: [-73.9576, 40.7062],
+                story: null
+            },
+            {
+                location: "East River Promenade",
+                coordinates: [-73.9742, 40.7175],
+                story: null
+            },
+            {
+                location: "Green Acre Park",
+                coordinates: [-73.9700, 40.7565],
+                story: null
+            }
+        ];
+
+        // Guide spots from the zine (blue dots)
+        const guideSpots = [
+            // NEW YORK, I LOVE YOU
+            {
+                location: "Times Square",
+                coordinates: [-73.9855, 40.7580],
+                category: "new york, i love you",
+                description: "step onto one of the rotating selfie platforms and immortalize your emotional spiral in glorious 60 fps"
+            },
+            {
+                location: "The MoMA (2nd Floor)",
+                coordinates: [-73.9776, 40.7614],
+                category: "new york, i love you",
+                description: "$30 cover charge. you'll say \"we've grown apart\" while staring at a canvas the color of your grief"
+            },
+            {
+                location: "Margaritaville",
+                coordinates: [-73.9862, 40.7572],
+                category: "new york, i love you",
+                description: "\"...and you've shown me time and time again that i cannot trust you to be considerate to me - yes i'll get the golden fried shrimp\""
+            },
+            // CINEMATIC GOODBYES
+            {
+                location: "North 5th St Pier Bench",
+                coordinates: [-73.9680, 40.7185],
+                category: "cinematic goodbyes",
+                description: "you came for the view, stayed for the existential clarity. feels like the city is watching."
+            },
+            {
+                location: "Hunter's Point South",
+                coordinates: [-73.9590, 40.7420],
+                category: "cinematic goodbyes",
+                description: "blue sky, river breeze, white dress. picturesque, even as it ended. *author's pick"
+            },
+            {
+                location: "Fort Tryon Park (Cloisters)",
+                coordinates: [-73.9320, 40.8620],
+                category: "cinematic goodbyes",
+                description: "a scenic locale for lovers torn apart by duty, scandal, or vibes. ideal for walking away slowly."
+            },
+            // CRUEL AND/OR UNUSUAL
+            {
+                location: "Top of the Empire State",
+                coordinates: [-73.9857, 40.7484],
+                category: "cruel and/or unusual",
+                description: "cling to the railing while tourists shove past and a gust of wind slaps you in the face."
+            },
+            {
+                location: "NYPL Reading Room",
+                coordinates: [-73.9822, 40.7532],
+                category: "cruel and/or unusual",
+                description: "you can't scream, you can't cry, you can only sit there marinating in the rejection while a guy three tables over works on his dissertation"
+            },
+            {
+                location: "Staten Island Ferry",
+                coordinates: [-74.0131, 40.6433],
+                category: "cruel and/or unusual",
+                description: "break up, then get trapped on a giant floating bus with 400 strangers and a 1-way ticket to staten island"
+            }
+        ];
+
+        // =============================================
+        // MAP SETUP
+        // =============================================
+        const map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/dark-v11',
+            center: [-73.975, 40.745],
+            zoom: 12,
+            pitch: 0,
+            maxBounds: [[-74.3, 40.45], [-73.6, 40.95]]
+        });
+
+        map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-right');
+
+        // =============================================
+        // MARKERS
+        // =============================================
+        map.on('load', () => {
+            // Breakup story markers (red solid)
+            breakupStories.forEach(story => {
+                const dot = document.createElement('div');
+                dot.className = 'marker-dot';
+
+                const popupHTML = story.story
+                    ? `<div class="popup-location">${story.location}</div>
+                       <div class="popup-story">"${story.story}"</div>
+                       <div class="popup-tag breakup">breakup story</div>`
+                    : `<div class="popup-location">${story.location}</div>
+                       <div class="popup-story" style="font-style: italic; color: #888;">a breakup happened here.</div>
+                       <div class="popup-tag breakup">breakup spot</div>`;
+
+                const popup = new mapboxgl.Popup({ offset: 10, closeButton: true })
+                    .setHTML(popupHTML);
+
+                new mapboxgl.Marker({ element: dot, anchor: 'center' })
+                    .setLngLat(story.coordinates)
+                    .setPopup(popup)
+                    .addTo(map);
+            });
+
+            // Guide spot markers (red with star)
+            guideSpots.forEach(spot => {
+                const dot = document.createElement('div');
+                dot.className = 'marker-dot guide';
+                dot.textContent = '\u2605';
+
+                const popup = new mapboxgl.Popup({ offset: 10, closeButton: true })
+                    .setHTML(`
+                        <div class="popup-location guide-location">${spot.location}</div>
+                        <div class="popup-story">${spot.description}</div>
+                        <div class="popup-category">${spot.category}</div>
+                        <div class="popup-tag guide">guide</div>
+                    `);
+
+                new mapboxgl.Marker({ element: dot, anchor: 'center' })
+                    .setLngLat(spot.coordinates)
+                    .setPopup(popup)
+                    .addTo(map);
+            });
+        });
+
+        // =============================================
+        // GUIDE PANEL
+        // =============================================
+        function toggleGuide() {
+            const panel = document.getElementById('guide-panel');
+            const toggle = document.getElementById('guide-toggle');
+            panel.classList.toggle('open');
+            toggle.classList.toggle('active');
+            toggle.textContent = panel.classList.contains('open') ? 'close' : 'guide';
+        }
+
+        function flyToGuide(index) {
+            const spot = guideSpots[index];
+            if (!spot) return;
+            map.flyTo({
+                center: spot.coordinates,
+                zoom: 15,
+                duration: 1500,
+                essential: true
+            });
+            // Close guide panel on mobile
+            if (window.innerWidth < 900) {
+                toggleGuide();
+            }
+        }
+
+        // =============================================
+        // IDLE OVERLAY
+        // =============================================
+        let idleTimer = null;
+        let overlayVisible = false;
+        const IDLE_TIMEOUT = 45000; // 45 seconds
+        const OVERLAY_DURATION = 4000; // show for 4 seconds
+
+        function resetIdleTimer() {
+            if (overlayVisible) {
+                hideIdleOverlay();
+            }
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(showIdleOverlay, IDLE_TIMEOUT);
+        }
+
+        function showIdleOverlay() {
+            const overlay = document.getElementById('idle-overlay');
+            overlay.classList.add('visible');
+            overlayVisible = true;
+            // Auto-hide after a few seconds, then restart timer
+            setTimeout(() => {
+                hideIdleOverlay();
+                idleTimer = setTimeout(showIdleOverlay, IDLE_TIMEOUT);
+            }, OVERLAY_DURATION);
+        }
+
+        function hideIdleOverlay() {
+            const overlay = document.getElementById('idle-overlay');
+            overlay.classList.remove('visible');
+            overlayVisible = false;
+        }
+
+        // Listen for any interaction
+        ['mousemove', 'mousedown', 'wheel', 'touchstart', 'keydown'].forEach(evt => {
+            document.addEventListener(evt, resetIdleTimer, { passive: true });
+        });
+
+        // Start idle timer
+        resetIdleTimer();
+    </script>
+</body>
+</html>
